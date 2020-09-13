@@ -25,7 +25,7 @@ class ExchangeController {
             .then(data => {
                 this.view.renderExchangeWidget(data[0]);
             })
-            .catch(function(err) {
+            .catch(function (err) {
                 console.log(`Something goes wrong. Error: ${err}`);
             });
     }
@@ -54,21 +54,21 @@ class WeatherView {
         this.mainBlock.append(this.form, this.cityList);
     }
 
-    renderTask(task) {
+    renderTask(city) {
         const item = document.createElement("div");
-        item.className = "card";
-        item.style = "width: 18rem";
+        item.className = "card w-75";
         const body = document.createElement("div");
+        body.setAttribute('id', city.id);
         body.className = "card-body";
-
         item.append(body);
-
         const text = document.createElement('p');
-        text.innerHTML = task.text;
+        text.className = 'editable';
+        text.contentEditable = true;
+        text.innerHTML = city.text;
         const removeButton = document.createElement("a");
         removeButton.innerHTML = "&#10008;";
         removeButton.className = "btn btn-danger";
-        removeButton.setAttribute('data-id', task.id)
+        removeButton.setAttribute('data-id', city.id)
         body.append(text, removeButton);
         this.cityList.appendChild(item);
     }
@@ -87,23 +87,30 @@ class WeatherController {
         this.view = view;
         this.addData = this.addData.bind(this);
         this.showData = this.showData.bind(this);
+        this.getGeoLocation = this.getGeoLocation.bind(this);
+        this.editCity = this.editCity.bind(this);
     }
 
     addData() {
         let value = this.view.input.value;
         if (value) {
-            this.model.addTask(value);
+            this.model.addCity(value);
             this.view.renderCities(this.model.cities);
             this.view.input.value = '';
         }
     }
 
     dropData(id) {
-        this.model.dropTask(id);
+        this.model.dropCity(id);
         this.view.renderCities(this.model.cities);
     }
 
     showData() {
+        this.view.renderCities(this.model.cities);
+    }
+
+    editCity(id, text) {
+        this.model.editCity(id, text);
         this.view.renderCities(this.model.cities);
     }
 
@@ -117,6 +124,21 @@ class WeatherController {
                 this.dropData(idValue);
             }
         });
+
+        this.view.cityList.addEventListener('input', ({ target }) => {
+            if (target.className === 'editable') {
+                this._temporaryTaskText = target.innerText
+            }
+        });
+
+        this.view.cityList.addEventListener('focusout', ({ target }) => {
+            if (this._temporaryTaskText) {
+                const id = parseInt(target.parentElement.id)
+
+                this.editCity(id, this._temporaryTaskText);
+                this._temporaryTaskText = '';
+            }
+        })
     }
 }
 
@@ -125,7 +147,14 @@ class WeatherModel {
         this.cities = JSON.parse(localStorage.getItem('cities')) || [];
     }
 
-    addTask(value) {
+    editCity(id, updatedText) {
+        this.cities = this.cities.map(city =>
+            city.id === id ? { id: city.id, text: updatedText } : city
+        )
+        this.save(this.cities);
+    }
+
+    addCity(value) {
         const city = {
             id: this.cities.length > 0 ? this.cities[this.cities.length - 1].id + 1 : 1,
             text: value,
@@ -134,14 +163,14 @@ class WeatherModel {
         this.save(this.cities)
     }
 
-    dropTask(id) {
-        this.cities = this.cities.filter(task => task.id !== Number(id))
+    dropCity(id) {
+        this.cities = this.cities.filter(city => city.id !== Number(id))
         this.save(this.cities)
     }
 
-    editTask(id, updatedText) {
-        this.cities = this.cities.map(task =>
-            task.id === id ? { id: task.id, text: updatedText } : task
+    editCity(id, updatedText) {
+        this.cities = this.cities.map(city =>
+            city.id === id ? { id: city.id, text: updatedText } : city
         )
 
         this.save(this.cities)
@@ -159,7 +188,7 @@ class WeatherModel {
     exchangeController.getExchangeData();
     setInterval(() => {
         exchangeController.getExchangeData();
-    }, 1000*60*60);
+    }, 1000 * 60 * 60);
 
     const weatherView = new WeatherView();
     const weatherModel = new WeatherModel();

@@ -35,6 +35,7 @@ class ExchangeController {
 class WeatherView {
     constructor() {
         this.mainBlock = document.querySelector("#app");
+
         this.form = document.createElement("div");
         this.form.className = "form-inline";
         this.formGroup = document.createElement('div');
@@ -48,10 +49,19 @@ class WeatherView {
         this.form.append(this.formGroup, this.addButton);
         this.cityList = document.createElement("div");
         this.cityList.className = "cities-list";
+
+        this.currentLocation = document.createElement('div');
+        this.currentLocation.className = "card w-75";
+        this.cLBody = document.createElement('div');
+        this.cLBody.className = "card-body";
+        this.clBodyH5 = document.createElement('h5');
+        this.clBodyDesc = document.createElement('p');
+        this.cLBody.append(this.clBodyH5, this.clBodyDesc);
+        this.currentLocation.append(this.cLBody);
     }
 
     initReneder() {
-        this.mainBlock.append(this.form, this.cityList);
+        this.mainBlock.append(this.currentLocation, this.form, this.cityList);
     }
 
     renderCity(city) {
@@ -61,7 +71,7 @@ class WeatherView {
         body.setAttribute('id', city.id);
         body.className = "card-body";
         item.append(body);
-        const text = document.createElement('p');
+        const text = document.createElement('h5');
         text.className = 'editable';
         text.contentEditable = true;
         text.innerHTML = city.text;
@@ -78,6 +88,11 @@ class WeatherView {
         cities.forEach((city) => {
             this.renderCity(city);
         });
+    }
+
+    updateCurrentCity(name, data) {
+        this.clBodyH5.innerText = name;
+        this.clBodyDesc.innerText = data;
     }
 }
 
@@ -115,6 +130,15 @@ class WeatherController {
 
     addHandle() {
         this.showData();
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => this.model.setLocation([position.coords.latitude, position.coords.longitude]),
+            );
+        } else {
+            this.model.setLocation(null);
+        }
+
         this.view.addButton.addEventListener("click", this.addData);
 
         this.view.cityList.addEventListener("click", ({ target }) => {
@@ -143,6 +167,9 @@ class WeatherController {
 
 class WeatherModel {
     constructor(view) {
+        this.location = null;
+        this.currCityName = null;
+        this.currCityWeatherData = null;
         this.view = view;
         this.cities = JSON.parse(localStorage.getItem('cities')) || [];
     }
@@ -178,6 +205,32 @@ class WeatherModel {
 
     save(cities) {
         localStorage.setItem('cities', JSON.stringify(cities));
+    }
+
+    setLocation(location) {
+        if (location) {
+            this.location = location;
+            this.getWeatherForLocation();
+        }
+    }
+
+    getWeatherForLocation() {
+        console.log(this.location)
+        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${this.location[0]}&lon=${this.location[1]}&appid=${apiKey}&units=metric`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.cod === 200) {
+                    console.log(data)
+                    this.currCityName = data.name;
+                    this.currCityWeatherData = `Temp: ${data.main.temp} C; Wind: ${data.wind.speed} mps; ${data.weather[0].description}`;
+                }
+            })
+            .catch(function (err) {
+                console.log(`Something goes wrong. Error: ${err}`);
+            })
+            .finally(() => {
+                this.view.updateCurrentCity(this.currCityName, this.currCityWeatherData);
+            });
     }
 }
 

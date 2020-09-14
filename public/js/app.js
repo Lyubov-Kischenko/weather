@@ -220,7 +220,6 @@ class WeatherModel {
             .then(response => response.json())
             .then(data => {
                 if (data.cod === 200) {
-                    console.log(data)
                     this.currCityName = data.name;
                     this.currCityWeatherData = `Temp: ${data.main.temp} C; Wind: ${data.wind.speed} mps; ${data.weather[0].description}`;
                 }

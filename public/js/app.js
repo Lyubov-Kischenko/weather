@@ -1,3 +1,4 @@
+const apiKey = "87281a4fa208ee16ddfdfdaa43a194c9";
 class ExchangeView {
     constructor() {
         this.mainBlock = document.querySelector("#app");
@@ -31,11 +32,10 @@ class ExchangeController {
     }
 }
 
-
 class WeatherView {
     constructor() {
         this.mainBlock = document.querySelector("#app");
-        this.form = document.createElement("form");
+        this.form = document.createElement("div");
         this.form.className = "form-inline";
         this.formGroup = document.createElement('div');
         this.formGroup.className = "form-group";
@@ -54,7 +54,7 @@ class WeatherView {
         this.mainBlock.append(this.form, this.cityList);
     }
 
-    renderTask(city) {
+    renderCity(city) {
         const item = document.createElement("div");
         item.className = "card w-75";
         const body = document.createElement("div");
@@ -75,8 +75,8 @@ class WeatherView {
 
     renderCities(cities) {
         this.cityList.innerHTML = '';
-        cities.forEach((task) => {
-            this.renderTask(task);
+        cities.forEach((city) => {
+            this.renderCity(city);
         });
     }
 }
@@ -87,7 +87,6 @@ class WeatherController {
         this.view = view;
         this.addData = this.addData.bind(this);
         this.showData = this.showData.bind(this);
-        this.getGeoLocation = this.getGeoLocation.bind(this);
         this.editCity = this.editCity.bind(this);
     }
 
@@ -143,7 +142,8 @@ class WeatherController {
 }
 
 class WeatherModel {
-    constructor() {
+    constructor(view) {
+        this.view = view;
         this.cities = JSON.parse(localStorage.getItem('cities')) || [];
     }
 
@@ -191,7 +191,7 @@ class WeatherModel {
     }, 1000 * 60 * 60);
 
     const weatherView = new WeatherView();
-    const weatherModel = new WeatherModel();
+    const weatherModel = new WeatherModel(weatherView);
     const weatherController = new WeatherController(weatherModel, weatherView);
     weatherView.initReneder();
     weatherController.addHandle();
